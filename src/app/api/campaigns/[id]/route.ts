@@ -1,11 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 
-export async function GET(
-  req: Request,
-  context: { params: Promise<{ id: string }> },
-) {
+type RouteContext = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
+export async function GET(req: Request, context: RouteContext) {
   const { id } = await context.params;
+
   try {
     const supabase = await createAdminClient();
 
@@ -27,16 +31,28 @@ export async function GET(
       .select(
         `
         *,
-        contact:contacts(id, phone, name, email)
+        contact:contacts(
+          id,
+          phone,
+          name,
+          email
+        )
       `,
       )
       .eq('campaign_id', id)
       .order('created_at', { ascending: true });
 
-    if (logsError) throw logsError;
+    if (logsError) {
+      throw logsError;
+    }
 
-    return NextResponse.json({ campaign, logs: logs ?? [] });
+    return NextResponse.json({
+      campaign,
+      logs: logs ?? [],
+    });
   } catch (err) {
+    console.error(err);
+
     return NextResponse.json(
       { error: 'Failed to fetch campaign details' },
       { status: 500 },
